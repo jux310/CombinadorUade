@@ -21,23 +21,15 @@ export default function App() {
   const handleAddSubject = (subject: Subject) => {
     if (editingSubject) {
       const newSubjects = subjects.map((s, i) => i === editingSubject.index ? subject : s);
-      const generated = generateSchedules(newSubjects, preferences);
-      setSchedules(generated);
-      setFavorites([]);
-      setCurrentSchedule(0);
+      setSubjects(newSubjects);
       setEditingSubject(null);
     } else {
       setSubjects(prev => [...prev, subject]);
-      setSchedules([]);
-      setFavorites([]);
-      setCurrentSchedule(0);
     }
   };
 
   const handleRemoveSubject = (index: number) => {
     setSubjects(prev => prev.filter((_, i) => i !== index));
-    setSchedules([]);
-    setCurrentSchedule(0);
   };
 
   const generateSchedulesIfNeeded = useCallback(() => {
