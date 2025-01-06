@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout } from 'lucide-react';
 import { Preferences, Schedule, Subject } from './types';
 import SubjectInput from './components/SubjectInput';
@@ -40,12 +40,16 @@ export default function App() {
     setCurrentSchedule(0);
   };
 
-  const handleGenerateSchedules = () => {
+  const generateSchedulesIfNeeded = useCallback(() => {
     const generated = generateSchedules(subjects, preferences);
     setSchedules(generated);
     setFavorites([]);
     setCurrentSchedule(0);
-  };
+  }, [subjects, preferences]);
+
+  useEffect(() => {
+    generateSchedulesIfNeeded();
+  }, [generateSchedulesIfNeeded]);
 
   const toggleFavorite = (index: number) => {
     setFavorites(prev => 
@@ -198,13 +202,6 @@ export default function App() {
                   <BookOpen className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
                   <h2 className="text-xl font-semibold">Materias Agregadas</h2>
                 </div>
-                <button
-                  onClick={handleGenerateSchedules}
-                  className="btn-primary whitespace-nowrap"
-                >
-                  <span className="hidden sm:inline">Generar Combinaciones</span>
-                  <span className="sm:hidden">Calcular</span>
-                </button>
               </div>
               <div className="space-y-2">
                 {subjects.map((subject, index) => (

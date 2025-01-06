@@ -96,7 +96,7 @@ export default function SubjectInput({ onAddSubject, editingSubject, onCancelEdi
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      {name.trim() && <div className="overflow-x-auto">
         <table className="min-w-full border-collapse md:hidden">
           <thead>
             <tr>
@@ -162,7 +162,7 @@ export default function SubjectInput({ onAddSubject, editingSubject, onCancelEdi
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
     </form>
   );
 }
