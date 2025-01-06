@@ -7,7 +7,7 @@ const days = {
 };
 const turns = {
   full: ['Mañana', 'Tarde', 'Noche'],
-  short: ['M', 'T', 'N']
+  short: ['☀️ M', '🌤️ T', '🌙 N']
 };
 
 interface Props {
