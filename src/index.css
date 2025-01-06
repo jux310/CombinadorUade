@@ -22,7 +22,7 @@
   }
   
   .card {
-    @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+    @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 sm:rounded-xl sm:shadow-sm;
   }
   
   .input {
@@ -31,5 +31,19 @@
   
   .select {
     @apply px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .card {
+      @apply px-2 py-4 bg-white shadow-none rounded-none border-0;
+    }
+    
+    table {
+      @apply text-sm w-full mx-0;
+    }    
+    td, th {
+      @apply p-1 px-2;
+    }
   }
 }

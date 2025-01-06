@@ -2,14 +2,20 @@ import React, { useState } from 'react';
 import { PlusCircle, X } from 'lucide-react';
 import { Day, Subject, Turn } from '../types';
 
+const days = {
+  full: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] as Day[],
+  short: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie']
+};
+const turns = {
+  full: ['Mañana', 'Tarde', 'Noche'] as Turn[],
+  short: ['M', 'T', 'N']
+};
+
 interface Props {
   onAddSubject: (subject: Subject) => void;
   editingSubject?: Subject;
   onCancelEdit?: () => void;
 }
-
-const days: Day[] = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-const turns: Turn[] = ['Mañana', 'Tarde', 'Noche'];
 
 export default function SubjectInput({ onAddSubject, editingSubject, onCancelEdit }: Props) {
   const [name, setName] = useState(editingSubject?.name || '');
@@ -60,12 +66,12 @@ export default function SubjectInput({ onAddSubject, editingSubject, onCancelEdi
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         {editingSubject && (
           <button
             type="button"
             onClick={handleCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
           >
             Cancelar
           </button>
@@ -80,7 +86,7 @@ export default function SubjectInput({ onAddSubject, editingSubject, onCancelEdi
         <button
           type="submit"
           disabled={!name.trim() || Object.keys(availability).length === 0}
-          className={`btn ${
+          className={`w-full sm:w-auto btn ${
             editingSubject 
               ? 'bg-green-500 hover:bg-green-600 text-white hover:shadow-md' 
               : 'btn-primary'
@@ -91,20 +97,53 @@ export default function SubjectInput({ onAddSubject, editingSubject, onCancelEdi
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse">
+        <table className="min-w-full border-collapse md:hidden">
           <thead>
             <tr>
               <th className="p-2 border"></th>
-              {days.map(day => (
+              {turns.short.map((turn, i) => (
+                <th key={turn} className="p-2 border">{turn}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {days.short.map((day, i) => (
+              <tr key={day}>
+                <td className="p-2 border font-medium whitespace-nowrap">{day}</td>
+                {turns.full.map((turn, j) => (
+                  <td key={`${days.full[i]}-${turn}`} className="p-2 border text-center">
+                    <button
+                      type="button"
+                      onClick={() => toggleAvailability(days.full[i], turn)}
+                      className={`w-6 h-6 rounded transition-colors ${
+                        availability[days.full[i]]?.includes(turn)
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {availability[days.full[i]]?.includes(turn) && <X className="w-4 h-4" />}
+                    </button>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <table className="min-w-full border-collapse hidden md:table">
+          <thead>
+            <tr>
+              <th className="p-2 border"></th>
+              {days.full.map(day => (
                 <th key={day} className="p-2 border">{day}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {turns.map(turn => (
+            {turns.full.map(turn => (
               <tr key={turn}>
                 <td className="p-2 border font-medium">{turn}</td>
-                {days.map(day => (
+                {days.full.map(day => (
                   <td key={`${day}-${turn}`} className="p-2 border text-center">
                     <button
                       type="button"

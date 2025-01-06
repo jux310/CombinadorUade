@@ -57,17 +57,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto sm:p-6">
         <header className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-2">
             <Calendar className="w-10 h-10 text-blue-600" strokeWidth={1.5} />
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
               Combinador de Horarios
             </h1>
           </div>
         </header>
 
-        <div className="space-y-8">
+        <div className="flex flex-col gap-4 sm:gap-8">
           <section className="card p-6">
             <div 
               className="flex items-center justify-between cursor-pointer hover:opacity-75 transition-opacity"
@@ -200,9 +200,10 @@ export default function App() {
                 </div>
                 <button
                   onClick={handleGenerateSchedules}
-                  className="btn-primary"
+                  className="btn-primary whitespace-nowrap"
                 >
-                  Generar Combinaciones
+                  <span className="hidden sm:inline">Generar Combinaciones</span>
+                  <span className="sm:hidden">Calcular</span>
                 </button>
               </div>
               <div className="space-y-2">
@@ -238,36 +239,36 @@ export default function App() {
             <>
             <section className="card p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                   <Layout className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
-                  <h2 className="text-xl font-semibold">
+                  <h2 className="text-lg sm:text-xl font-semibold">
                     Combinación {currentSchedule + 1} de {schedules.length}
                   </h2>
                   <button
                     onClick={() => toggleFavorite(currentSchedule)}
-                    className={`text-red-500 transition-colors ${
+                    className={`text-red-500 transition-colors ml-2 ${
                       favorites.includes(currentSchedule) ? 'opacity-100' : 'opacity-50'
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${favorites.includes(currentSchedule) ? 'fill-current' : ''}`} />
                   </button>
                 </div>
-                <div className="flex gap-2">
+              </div>
+              <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setCurrentSchedule(prev => Math.max(0, prev - 1))}
                     disabled={currentSchedule === 0}
-                    className="btn-secondary"
+                    className="btn-secondary flex-1"
                   >
                     Anterior
                   </button>
                   <button
                     onClick={() => setCurrentSchedule(prev => Math.min(schedules.length - 1, prev + 1))}
                     disabled={currentSchedule === schedules.length - 1}
-                    className="btn-secondary"
+                    className="btn-secondary flex-1"
                   >
                     Siguiente
                   </button>
-                </div>
               </div>
               <ScheduleGrid schedule={schedules[currentSchedule]} />
             </section>
