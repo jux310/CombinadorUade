@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout } from 'lucide-react';
+import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download } from 'lucide-react';
 import { Preferences, Schedule, Subject } from './types';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFSchedule } from './components/PDFSchedule';
 import SubjectInput from './components/SubjectInput';
 import ScheduleGrid from './components/ScheduleGrid';
 import { generateSchedules } from './utils/scheduleGenerator';
@@ -81,22 +83,6 @@ export default function App() {
             </div>
             <div className={`space-y-4 ${showPreferences ? 'mt-4' : 'hidden'}`}>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="allowSandwich"
-                  checked={preferences.allowSandwich}
-                  onChange={(e) => setPreferences(prev => ({
-                    ...prev,
-                    allowSandwich: e.target.checked
-                  }))}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <label htmlFor="allowSandwich" className="text-gray-700">
-                  Permitir horarios sandwich (cursar mañana y noche sin tarde)
-                </label>
-              </div>
-              
-              <div className="flex items-center gap-2">
                 <label htmlFor="maxSubjectsPerDay" className="text-gray-700">
                   Máximo de materias por día:
                 </label>
@@ -114,6 +100,24 @@ export default function App() {
                   <option value={3}>3</option>
                 </select>
               </div>
+
+              {preferences.maxSubjectsPerDay > 1 && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="allowSandwich"
+                    checked={!preferences.allowSandwich}
+                    onChange={(e) => setPreferences(prev => ({
+                      ...prev,
+                      allowSandwich: !e.target.checked
+                    }))}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <label htmlFor="allowSandwich" className="text-gray-700">
+                    Prevenir días sándwich (Cursar mañana y noche)
+                  </label>
+                </div>
+              )}
               
               <div>
                 <h3 className="font-medium mb-2">Horarios Bloqueados</h3>
@@ -265,7 +269,15 @@ export default function App() {
               <section className="card p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Heart className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
-                  <h2 className="text-xl font-semibold">Combinaciones Favoritas</h2>
+                  <h2 className="text-xl font-semibold flex-1">Combinaciones Favoritas</h2>
+                  <PDFDownloadLink
+                    document={<PDFSchedule schedules={favorites.map(i => schedules[i])} />}
+                    fileName="horarios.pdf"
+                    className="btn-secondary inline-flex items-center gap-2 sm:gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Descargar</span>
+                  </PDFDownloadLink>
                 </div>
                 <div className="space-y-6">
                   {favorites.map(index => (
