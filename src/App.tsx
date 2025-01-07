@@ -114,7 +114,7 @@ export default function App() {
                     className="w-4 h-4 text-blue-600 rounded"
                   />
                   <label htmlFor="allowSandwich" className="text-gray-700">
-                    Prevenir días sándwich (Cursar mañana y noche)
+                    Excluir días sándwich (Cursar mañana y noche)
                   </label>
                 </div>
               )}
