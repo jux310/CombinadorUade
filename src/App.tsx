@@ -1,10 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download } from 'lucide-react';
+import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download, Share2 } from 'lucide-react';
 import { Preferences, Schedule, Subject } from './types';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+import CSVImport from './components/CSVImport';
 import { PDFSchedule } from './components/PDFSchedule';
 import SubjectInput from './components/SubjectInput';
 import ScheduleGrid from './components/ScheduleGrid';
+import { decodeDataFromURL, encodeDataToURL } from './utils/urlEncoder';
+import { parseCSV } from './utils/csvParser';
 import { generateSchedules } from './utils/scheduleGenerator';
 
 export default function App() {
@@ -19,6 +22,14 @@ export default function App() {
     maxSubjectsPerDay: 2,
     blockedSlots: [],
   });
+
+  useEffect(() => {
+    const data = decodeDataFromURL();
+    if (data) {
+      setSubjects(data.subjects);
+      setPreferences(data.preferences);
+    }
+  }, []);
 
   const handleAddSubject = (subject: Subject) => {
     if (editingSubject) {
@@ -51,6 +62,22 @@ export default function App() {
         ? prev.filter(i => i !== index)
         : [...prev, index]
     );
+  };
+
+  const handleShare = () => {
+    const data = {
+      subjects,
+      preferences
+    };
+    const shareableUrl = encodeDataToURL(data);
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareableUrl).then(() => {
+      alert('¡URL copiada al portapapeles!');
+    }).catch(err => {
+      console.error('Error al copiar:', err);
+      alert('Error al copiar la URL');
+    });
   };
 
   return (
@@ -119,6 +146,23 @@ export default function App() {
                 </div>
               )}
               
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-600">Importar/Exportar</h3>
+                  <div className="flex items-center gap-2">
+                    <CSVImport onImport={(subjects) => setSubjects(subjects)} />
+                    {subjects.length > 0 && (
+                      <button
+                        onClick={handleShare}
+                        className="text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
               <div>
                 <h3 className="font-medium mb-2">Horarios Bloqueados</h3>
                 <div className="overflow-x-auto">
@@ -181,7 +225,7 @@ export default function App() {
             <div className="flex items-center gap-2 mb-2">
               <ListPlus className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
               <h2 className="text-xl font-semibold">
-                {editingSubject ? 'Editar Materia' : 'Agregar Materia'}
+                {editingSubject ? 'Editar Materia' : 'Agregar Materias'}
               </h2>
             </div>
             <SubjectInput 
