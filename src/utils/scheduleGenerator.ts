@@ -79,5 +79,6 @@ function generateCombinations(subjects: Subject[], preferences: Preferences): Sc
 
 export function generateSchedules(subjects: Subject[], preferences: Preferences): Schedule[] {
   if (subjects.length === 0) return [];
-  return generateCombinations(subjects, preferences);
+  const visibleSubjects = subjects.filter(subject => !subject.hidden);
+  return generateCombinations(visibleSubjects, preferences);
 }

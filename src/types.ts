@@ -6,6 +6,7 @@ export interface Subject {
   availability: {
     [key in Day]?: Turn[];
   };
+  hidden?: boolean;
 }
 
 export interface Schedule {

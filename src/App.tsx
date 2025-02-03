@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download, Share2 } from 'lucide-react';
+import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download, Share2, Eye, EyeOff } from 'lucide-react';
 import { Preferences, Schedule, Subject } from './types';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CSVImport from './components/CSVImport';
@@ -43,6 +43,12 @@ export default function App() {
 
   const handleRemoveSubject = (index: number) => {
     setSubjects(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleSubjectVisibility = (index: number) => {
+    setSubjects(prev => prev.map((subject, i) => 
+      i === index ? { ...subject, hidden: !subject.hidden } : subject
+    ));
   };
 
   const generateSchedulesIfNeeded = useCallback(() => {
@@ -254,7 +260,25 @@ export default function App() {
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-sm"
                   >
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubjectVisibility(index);
+                        }}
+                        className={`text-gray-500 hover:text-gray-700 transition-colors ${
+                          subject.hidden ? 'text-gray-400' : ''
+                        }`}
+                      >
+                        {subject.hidden ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
                       <span>{subject.name}</span>
+                      {subject.hidden && (
+                        <span className="text-sm text-gray-500">(Oculta)</span>
+                      )}
                       <span className="text-sm text-gray-500">(Clic para editar)</span>
                     </div>
                     <button
