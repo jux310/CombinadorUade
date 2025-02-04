@@ -5,13 +5,26 @@ interface EncodedData {
   preferences: Preferences;
 }
 
-export function encodeCSVToURL(csvContent: string): string {
-  const base64 = btoa(csvContent);
-  return `${window.location.origin}${window.location.pathname}?data=${base64}`;
-}
-
 export function encodeDataToURL(data: EncodedData): string {
-  const jsonString = JSON.stringify(data);
+  // Minimizar los datos antes de codificar
+  const minData = {
+    s: data.subjects.map(s => ({
+      n: s.name,
+      a: Object.entries(s.availability).reduce((acc, [day, turns]) => {
+        acc[day[0]] = turns.map(t => t[0]); // Solo primera letra
+        return acc;
+      }, {}),
+      h: s.hidden
+    })),
+    p: {
+      a: data.preferences.allowSandwich,
+      m: data.preferences.maxSubjectsPerDay,
+      b: data.preferences.blockedSlots.map(({day, turn}) => 
+        `${day[0]}${turn[0]}`
+      )
+    }
+  };
+  const jsonString = JSON.stringify(minData);
   const base64 = btoa(encodeURIComponent(jsonString));
   return `${window.location.origin}${window.location.pathname}?data=${base64}`;
 }
@@ -23,45 +36,41 @@ export function decodeDataFromURL(): EncodedData | null {
   
   try {
     const jsonString = decodeURIComponent(atob(data));
-    return JSON.parse(jsonString);
-  } catch (e) {
-    console.error('Error decoding URL data:', e);
-    return null;
-  }
-}
-
-export function generateCSVFromSubjects(subjects: Subject[]): string {
-  const header = 'Código,Materia,Sede,ID,Modalidad,Idioma,Turno,Año,LUNES,MARTES,MIERCOLES,JUEVES,VIERNES,SABADO,DOMINGO,Horario,Fechas,Tipo\n';
-  
-  const rows = subjects.map(subject => {
-    const days = {
-      LUNES: false,
-      MARTES: false,
-      MIERCOLES: false,
-      JUEVES: false,
-      VIERNES: false,
-      SABADO: false,
-      DOMINGO: false
+    const minData = JSON.parse(jsonString);
+    
+    // Expandir los datos minimizados
+    const dayMap = {
+      'L': 'Lunes',
+      'M': 'Martes',
+      'X': 'Miércoles',
+      'J': 'Jueves',
+      'V': 'Viernes'
     };
     
-    Object.entries(subject.availability).forEach(([day, turns]) => {
-      const dayKey = day.toUpperCase().replace('É', 'E');
-      days[dayKey] = true;
-    });
+    const turnMap = {
+      'M': 'Mañana',
+      'T': 'Tarde',
+      'N': 'Noche'
+    };
     
-    return `,,${subject.name},,SEMANAL,ESPAÑOL,MAÑANA,,${days.LUNES},${days.MARTES},${days.MIERCOLES},${days.JUEVES},${days.VIERNES},${days.SABADO},${days.DOMINGO},07:45 11:45,,`;
-  }).join('\n');
-  
-  return header + rows;
-}
-
-export function decodeCSVFromURL(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  const data = params.get('data');
-  if (!data) return null;
-  
-  try {
-    return decodeURIComponent(atob(data));
+    return {
+      subjects: minData.s.map(s => ({
+        name: s.n,
+        availability: Object.entries(s.a).reduce((acc, [dayKey, turns]) => {
+          acc[dayMap[dayKey]] = turns.map(t => turnMap[t]);
+          return acc;
+        }, {}),
+        hidden: s.h
+      })),
+      preferences: {
+        allowSandwich: minData.p.a,
+        maxSubjectsPerDay: minData.p.m,
+        blockedSlots: minData.p.b.map(slot => ({
+          day: dayMap[slot[0]],
+          turn: turnMap[slot[1]]
+        }))
+      }
+    };
   } catch (e) {
     console.error('Error decoding URL data:', e);
     return null;
