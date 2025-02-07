@@ -14,11 +14,20 @@ interface Props {
   schedule: Schedule;
 }
 
-export default function ScheduleGrid({ schedule }: Props) {
-  const getSubjectForSlot = (day: string, turn: string) => {
-    return Object.entries(schedule).find(
+export default function ScheduleGrid({ schedule = {} }: Props) {
+  const getSubjectForSlot = (day: string, turn: string): { name: string; isVirtual: boolean } | null => {
+    if (!schedule) return null;
+    
+    const entry = Object.entries(schedule).find(
       ([_, slot]) => slot.day === day && slot.turn === turn
-    )?.[0] || '';
+    );
+    
+    if (!entry) return null;
+    
+    return {
+      name: entry[0],
+      isVirtual: entry[1].isVirtual || false
+    };
   };
 
   return (
@@ -38,7 +47,11 @@ export default function ScheduleGrid({ schedule }: Props) {
               <td className="p-3 border font-medium bg-gray-50 whitespace-nowrap">{day}</td>
               {turns.full.map((turn, j) => (
                 <td key={`${days.full[i]}-${turn}`} className="p-3 border text-center min-h-[60px]">
-                  {getSubjectForSlot(days.full[i], turn)}
+                  {(() => {
+                    const subject = getSubjectForSlot(days.full[i], turn);
+                    if (!subject) return '';
+                    return `${subject.name}${subject.isVirtual ? ' (V)' : ''}`;
+                  })()}
                 </td>
               ))}
             </tr>
@@ -61,7 +74,11 @@ export default function ScheduleGrid({ schedule }: Props) {
               <td className="p-3 border font-medium bg-gray-50">{turn}</td>
               {days.full.map(day => (
                 <td key={`${day}-${turn}`} className="p-3 border text-center">
-                  {getSubjectForSlot(day, turn)}
+                  {(() => {
+                    const subject = getSubjectForSlot(day, turn);
+                    if (!subject) return '';
+                    return `${subject.name}${subject.isVirtual ? ' (V)' : ''}`;
+                  })()}
                 </td>
               ))}
             </tr>

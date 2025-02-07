@@ -106,16 +106,28 @@ export function parseCSV(content: string) {
         if (!subject.availability[dayKey]) {
           subject.availability[dayKey] = [];
         }
-        if (!subject.availability[dayKey]!.includes(turn)) {
-          subject.availability[dayKey]!.push(turn);
+        const virtualTurn = {
+          turn,
+          isVirtual: true
+        };
+        if (!subject.availability[dayKey]!.some(t => 
+          t.turn === virtualTurn.turn && t.isVirtual === virtualTurn.isVirtual
+        )) {
+          subject.availability[dayKey]!.push(virtualTurn);
         }
       } else if (available) {
         const dayKey = dayMap[day];
         if (!subject.availability[dayKey]) {
           subject.availability[dayKey] = [];
         }
-        if (!subject.availability[dayKey]!.includes(turn)) {
-          subject.availability[dayKey]!.push(turn);
+        const normalTurn = {
+          turn,
+          isVirtual: false
+        };
+        if (!subject.availability[dayKey]!.some(t => 
+          t.turn === normalTurn.turn && t.isVirtual === normalTurn.isVirtual
+        )) {
+          subject.availability[dayKey]!.push(normalTurn);
         }
       }
     });
@@ -123,5 +135,8 @@ export function parseCSV(content: string) {
     subjectMap.set(course.name, subject);
   }
 
-  return Array.from(subjectMap.values());
+  return {
+    subjects: Array.from(subjectMap.values()),
+    rawCourses: courses
+  };
 }

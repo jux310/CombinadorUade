@@ -5,9 +5,10 @@ import { Subject } from '../types';
 
 interface Props {
   onImport: (subjects: Subject[]) => void;
+  onDataParsed: (data: { subjects: Subject[]; rawCourses: any[] }) => void;
 }
 
-export default function CSVImport({ onImport }: Props) {
+export default function CSVImport({ onImport, onDataParsed }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,8 +18,16 @@ export default function CSVImport({ onImport }: Props) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      const subjects = parseCSV(content);
-      onImport(subjects);
+      const parsedData = parseCSV(content);
+      const subjectsWithHidden = parsedData.subjects.map(subject => ({
+        ...subject,
+        hidden: true
+      }));
+      onDataParsed({
+        subjects: subjectsWithHidden,
+        rawCourses: parsedData.rawCourses
+      });
+      onImport(subjectsWithHidden);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -27,7 +36,7 @@ export default function CSVImport({ onImport }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div>
       <input
         ref={fileInputRef}
         type="file"

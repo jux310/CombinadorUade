@@ -1,27 +1,44 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download, Share2, Eye, EyeOff } from 'lucide-react';
+import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download, Share2, Eye, EyeOff, Maximize } from 'lucide-react';
 import { Preferences, Schedule, Subject } from './types';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CSVImport from './components/CSVImport';
 import { PDFSchedule } from './components/PDFSchedule';
+import CSVSummary from './components/CSVSummary';
 import SubjectInput from './components/SubjectInput';
 import ScheduleGrid from './components/ScheduleGrid';
 import { decodeDataFromURL, encodeDataToURL } from './utils/urlEncoder';
 import { parseCSV } from './utils/csvParser';
-import { generateSchedules } from './utils/scheduleGenerator';
+import { generateSchedules, findMaxSubjectsCombination } from './utils/scheduleGenerator';
 
 export default function App() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [currentSchedule, setCurrentSchedule] = useState(0);
+  const [currentMaxSchedule, setCurrentMaxSchedule] = useState(0);
+  const [maxSubjectsSchedule, setMaxSubjectsSchedule] = useState<{
+    maxSubjects: number;
+    schedules: Schedule[];
+    selectedSubjects: string[];
+  } | null>(null);
   const [editingSubject, setEditingSubject] = useState<{ subject: Subject; index: number } | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [importedData, setImportedData] = useState<{
+    subjects: Subject[];
+    rawCourses: any[];
+  } | null>(null);
+
   const [preferences, setPreferences] = useState<Preferences>({
     allowSandwich: false,
     maxSubjectsPerDay: 2,
     blockedSlots: [],
   });
+
+  const handleImport = (subjects: Subject[]) => {
+    setSubjects(subjects);
+    setShowPreferences(false);
+  };
 
   useEffect(() => {
     const data = decodeDataFromURL();
@@ -60,7 +77,13 @@ export default function App() {
 
   useEffect(() => {
     generateSchedulesIfNeeded();
-  }, [generateSchedulesIfNeeded]);
+    if (subjects.length > 0) {
+      const maxResult = findMaxSubjectsCombination(subjects, preferences);
+      setMaxSubjectsSchedule(maxResult);
+    } else {
+      setMaxSubjectsSchedule(null);
+    }
+  }, [generateSchedulesIfNeeded, subjects, preferences]);
 
   const toggleFavorite = (index: number) => {
     setFavorites(prev => 
@@ -156,7 +179,10 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-gray-600">Importar/Exportar</h3>
                   <div className="flex items-center gap-2">
-                    <CSVImport onImport={(subjects) => setSubjects(subjects)} />
+                    <CSVImport 
+                      onImport={handleImport}
+                      onDataParsed={setImportedData}
+                    />
                     {subjects.length > 0 && (
                       <button
                         onClick={handleShare}
@@ -227,6 +253,13 @@ export default function App() {
             </div>
           </section>
 
+          {/* CSV Summary Section */}
+          {importedData && (
+            <section className="card p-6">
+              <CSVSummary subjects={importedData.subjects} rawCourses={importedData.rawCourses} />
+            </section>
+          )}
+
           <section className="card p-6">
             <div className="flex items-center gap-2 mb-2">
               <ListPlus className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
@@ -279,6 +312,9 @@ export default function App() {
                       {subject.hidden && (
                         <span className="text-sm text-gray-500">(Oculta)</span>
                       )}
+                      {subject.priority && (
+                        <span className="text-sm text-blue-500">(Prioridad)</span>
+                      )}
                       <span className="text-sm text-gray-500">(Clic para editar)</span>
                     </div>
                     <button
@@ -297,42 +333,93 @@ export default function App() {
           )}
 
           {schedules.length > 0 && (
-            <>
-            <section className="card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Layout className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
-                  <h2 className="text-lg sm:text-xl font-semibold">
-                    Combinación {currentSchedule + 1} de {schedules.length}
-                  </h2>
-                  <button
-                    onClick={() => toggleFavorite(currentSchedule)}
-                    className={`text-red-500 transition-colors ml-2 ${
-                      favorites.includes(currentSchedule) ? 'opacity-100' : 'opacity-50'
-                    }`}
-                  >
-                    <Heart className={`w-5 h-5 ${favorites.includes(currentSchedule) ? 'fill-current' : ''}`} />
-                  </button>
+            <div className="space-y-4 sm:space-y-8">
+            {maxSubjectsSchedule && (
+              <section className="card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Maximize className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
+                    <h2 className="text-lg sm:text-xl font-semibold">
+                      Máximo de Materias en Simultáneo: {maxSubjectsSchedule.maxSubjects} 
+                      {maxSubjectsSchedule.schedules.length > 1 && (
+                        <span className="text-gray-500 ml-2">
+                          (Combinación {currentMaxSchedule + 1} de {maxSubjectsSchedule.schedules.length})
+                        </span>
+                      )}
+                    </h2>
+                    </div>
+                    <span className="text-sm text-gray-500 ml-1">
+                      ({maxSubjectsSchedule.selectedSubjects.join(', ')})
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => setCurrentSchedule(prev => Math.max(0, prev - 1))}
-                    disabled={currentSchedule === 0}
-                    className="btn-secondary flex-1"
-                  >
-                    Anterior
-                  </button>
-                  <button
-                    onClick={() => setCurrentSchedule(prev => Math.min(schedules.length - 1, prev + 1))}
-                    disabled={currentSchedule === schedules.length - 1}
-                    className="btn-secondary flex-1"
-                  >
-                    Siguiente
-                  </button>
-              </div>
-              <ScheduleGrid schedule={schedules[currentSchedule]} />
-            </section>
+                {maxSubjectsSchedule.schedules.length > 1 ? (
+                  <>
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => setCurrentMaxSchedule(prev => Math.max(0, prev - 1))}
+                        disabled={currentMaxSchedule === 0}
+                        className="btn-secondary flex-1"
+                      >
+                        Anterior
+                      </button>
+                      <button
+                        onClick={() => setCurrentMaxSchedule(prev => 
+                          Math.min(maxSubjectsSchedule.schedules.length - 1, prev + 1)
+                        )}
+                        disabled={currentMaxSchedule === maxSubjectsSchedule.schedules.length - 1}
+                        className="btn-secondary flex-1"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-gray-500 mb-4">
+                    Única opción
+                  </div>
+                )}
+                <ScheduleGrid schedule={maxSubjectsSchedule.schedules[currentMaxSchedule]} />
+              </section>
+            )}
+            {subjects.some(subject => !subject.hidden) && (
+              <section className="card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Layout className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
+                    <h2 className="text-lg sm:text-xl font-semibold">
+                      Combinación {currentSchedule + 1} de {schedules.length}
+                    </h2>
+                    <button
+                      onClick={() => toggleFavorite(currentSchedule)}
+                      className={`text-red-500 transition-colors ml-2 ${
+                        favorites.includes(currentSchedule) ? 'opacity-100' : 'opacity-50'
+                      }`}
+                    >
+                      <Heart className={`w-5 h-5 ${favorites.includes(currentSchedule) ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setCurrentSchedule(prev => Math.max(0, prev - 1))}
+                      disabled={currentSchedule === 0}
+                      className="btn-secondary flex-1"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      onClick={() => setCurrentSchedule(prev => Math.min(schedules.length - 1, prev + 1))}
+                      disabled={currentSchedule === schedules.length - 1}
+                      className="btn-secondary flex-1"
+                    >
+                      Siguiente
+                    </button>
+                </div>
+                <ScheduleGrid schedule={schedules[currentSchedule]} />
+              </section>
+            )}
             {favorites.length > 0 && (
               <section className="card p-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -365,7 +452,7 @@ export default function App() {
                 </div>
               </section>
             )}
-            </>
+            </div>
           )}
         </div>
         <footer className="mt-8 text-center text-gray-600">

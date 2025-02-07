@@ -77,7 +77,11 @@ export const PDFSchedule = ({ schedules }: Props) => (
                     <Text style={styles.tableCell}>
                       {Object.entries(schedule).find(
                         ([_, slot]) => slot.day === day && slot.turn === turn
-                      )?.[0] || ''}
+                      )?.[0] && `${Object.entries(schedule).find(
+                        ([_, slot]) => slot.day === day && slot.turn === turn
+                      )?.[0]}${Object.entries(schedule).find(
+                        ([_, slot]) => slot.day === day && slot.turn === turn
+                      )?.[1].isVirtual ? ' (V)' : ''}` || ''}
                     </Text>
                   </View>
                 ))}
