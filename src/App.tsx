@@ -16,6 +16,7 @@ export default function App() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [currentSchedule, setCurrentSchedule] = useState(0);
   const [currentMaxSchedule, setCurrentMaxSchedule] = useState(0);
+  const [maxSubjectsFavorites, setMaxSubjectsFavorites] = useState<number[]>([]);
   const [maxSubjectsSchedule, setMaxSubjectsSchedule] = useState<{
     maxSubjects: number;
     schedules: Schedule[];
@@ -87,6 +88,14 @@ export default function App() {
 
   const toggleFavorite = (index: number) => {
     setFavorites(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
+
+  const toggleMaxSubjectsFavorite = (index: number) => {
+    setMaxSubjectsFavorites(prev => 
       prev.includes(index) 
         ? prev.filter(i => i !== index)
         : [...prev, index]
@@ -349,9 +358,14 @@ export default function App() {
                       )}
                     </h2>
                     </div>
-                    <span className="text-sm text-gray-500 ml-1">
-                      ({maxSubjectsSchedule.selectedSubjects.join(', ')})
-                    </span>
+                    <button
+                      onClick={() => toggleMaxSubjectsFavorite(currentMaxSchedule)}
+                      className={`text-red-500 transition-colors ${
+                        maxSubjectsFavorites.includes(currentMaxSchedule) ? 'opacity-100' : 'opacity-50'
+                      }`}
+                    >
+                      <Heart className={`w-5 h-5 ${maxSubjectsFavorites.includes(currentMaxSchedule) ? 'fill-current' : ''}`} />
+                    </button>
                   </div>
                 </div>
                 {maxSubjectsSchedule.schedules.length > 1 ? (
@@ -420,13 +434,25 @@ export default function App() {
                 <ScheduleGrid schedule={schedules[currentSchedule]} />
               </section>
             )}
-            {favorites.length > 0 && (
+            {(favorites.length > 0 || maxSubjectsFavorites.length > 0) && (
               <section className="card p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Heart className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
                   <h2 className="text-xl font-semibold flex-1">Combinaciones Favoritas</h2>
+                  {maxSubjectsFavorites.length > 0 && (
+                    <div className="text-sm text-gray-500 mr-4">
+                      ({maxSubjectsFavorites.length} máximas, {favorites.length} normales)
+                    </div>
+                  )}
                   <PDFDownloadLink
-                    document={<PDFSchedule schedules={favorites.map(i => schedules[i])} />}
+                    document={
+                      <PDFSchedule 
+                        schedules={[
+                          ...maxSubjectsFavorites.map(i => maxSubjectsSchedule!.schedules[i]),
+                          ...favorites.map(i => schedules[i])
+                        ]} 
+                      />
+                    }
                     fileName="horarios.pdf"
                     className="btn-secondary inline-flex items-center gap-2 sm:gap-2"
                   >
@@ -435,10 +461,31 @@ export default function App() {
                   </PDFDownloadLink>
                 </div>
                 <div className="space-y-6">
+                  {maxSubjectsFavorites.length > 0 && (
+                    <div className="border-b pb-4">
+                      <h3 className="text-lg font-medium mb-4">Combinaciones Máximas Favoritas</h3>
+                      {maxSubjectsFavorites.map(index => (
+                        <div key={`max-${index}`} className="mb-6 last:mb-0">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-base font-medium">
+                              Máximo de Materias ({maxSubjectsSchedule!.maxSubjects}) - Combinación {index + 1}
+                            </h4>
+                            <button
+                              onClick={() => toggleMaxSubjectsFavorite(index)}
+                              className="text-red-500"
+                            >
+                              <Heart className="w-5 h-5 fill-current" />
+                            </button>
+                          </div>
+                          <ScheduleGrid schedule={maxSubjectsSchedule!.schedules[index]} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {favorites.map(index => (
                     <div key={index} className="border-b pb-6 last:border-b-0 last:pb-0">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium">Combinación {index + 1}</h3>
+                        <h3 className="text-lg font-medium">Combinación Normal {index + 1}</h3>
                         <button
                           onClick={() => toggleFavorite(index)}
                           className="text-red-500"

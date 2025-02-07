@@ -26,25 +26,27 @@ export default function CSVSummary({ subjects, rawCourses }: Props) {
   
   // Helper function to check if two subjects can be taken together
   const areSubjectsIncompatible = (subject1: Subject, subject2: Subject) => {
-    // Get all days where either subject has classes
-    const allDays = new Set([
-      ...Object.keys(subject1.availability),
-      ...Object.keys(subject2.availability)
-    ]);
+    // Get all possible combinations for subject1
+    const combinations1: { day: Day; turn: Turn }[] = [];
+    for (const [day, turns] of Object.entries(subject1.availability)) {
+      for (const { turn } of turns) {
+        combinations1.push({ day: day as Day, turn });
+      }
+    }
+    
+    // Get all possible combinations for subject2
+    const combinations2: { day: Day; turn: Turn }[] = [];
+    for (const [day, turns] of Object.entries(subject2.availability)) {
+      for (const { turn } of turns) {
+        combinations2.push({ day: day as Day, turn });
+      }
+    }
     
     // Try to find at least one valid combination
-    for (const day1 of allDays) {
-      const turns1 = subject1.availability[day1] || [];
-      
-      for (const day2 of allDays) {
-        const turns2 = subject2.availability[day2] || [];
-        
-        // If different days, we found a valid combination
-        if (day1 !== day2) return false;
-        
-        // If same day but different turns, we found a valid combination
-        if (!turns1.every(turn => turns2.includes(turn)) ||
-            !turns2.every(turn => turns1.includes(turn))) {
+    for (const slot1 of combinations1) {
+      for (const slot2 of combinations2) {
+        // If different days or different turns on same day, we found a valid combination
+        if (slot1.day !== slot2.day || slot1.turn !== slot2.turn) {
           return false;
         }
       }
