@@ -47,49 +47,86 @@ const styles = StyleSheet.create({
 const days = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const turns = ['Mañana', 'Tarde', 'Noche'];
 
+interface ScheduleSlot {
+  day: string;
+  turn: string;
+  isVirtual?: boolean;
+}
+
 interface Props {
   schedules: Schedule[];
 }
 
-export const PDFSchedule = ({ schedules }: Props) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <Text style={styles.title}>Horarios</Text>
-      <Link src="https://uade.netlify.app/" style={styles.subtitle}>https://uade.netlify.app/</Link>
-      {schedules.map((schedule, index) => (
-        <View key={index} wrap={false}>
-          <Text style={{ fontSize: 14, marginBottom: 10 }}>Combinación {index + 1}</Text>
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              {days.map((day) => (
-                <View key={day} style={styles.tableCol}>
-                  <Text style={styles.tableCell}>{day}</Text>
+const getSubjectForSlot = (schedule: Schedule, day: string, turn: string): { name: string; isVirtual: boolean } | null => {
+  if (!schedule) return null;
+  
+  const entry = Object.entries(schedule).find(
+    ([_, slot]) => slot && slot.day === day && slot.turn === turn
+  );
+  
+  if (!entry) return null;
+  
+  return {
+    name: entry[0],
+    isVirtual: entry[1].isVirtual || false
+  };
+};
+
+export const PDFSchedule = ({ schedules }: Props) => {
+  if (!Array.isArray(schedules) || schedules.length === 0) {
+    throw new Error('Invalid schedules data');
+  }
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>Horarios</Text>
+        <Link src="https://uade.netlify.app/" style={styles.subtitle}>https://uade.netlify.app/</Link>
+        {schedules.map((schedule, index) => {
+          if (!schedule || typeof schedule !== 'object') {
+            console.warn(`Invalid schedule at index ${index}`);
+            return null;
+          }
+
+          return (
+            <View key={index} wrap={false}>
+              <Text style={{ fontSize: 14, marginBottom: 10 }}>Combinación {index + 1}</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  {days.map((day) => (
+                    <View key={day} style={styles.tableCol}>
+                      <Text style={styles.tableCell}>{day}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-            {turns.map((turn) => (
-              <View key={turn} style={styles.tableRow}>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>{turn}</Text>
-                </View>
-                {days.slice(1).map((day) => (
-                  <View key={day} style={styles.tableCol}>
-                    <Text style={styles.tableCell}>
-                      {Object.entries(schedule).find(
-                        ([_, slot]) => slot.day === day && slot.turn === turn
-                      )?.[0] && `${Object.entries(schedule).find(
-                        ([_, slot]) => slot.day === day && slot.turn === turn
-                      )?.[0]}${Object.entries(schedule).find(
-                        ([_, slot]) => slot.day === day && slot.turn === turn
-                      )?.[1].isVirtual ? ' (V)' : ''}` || ''}
-                    </Text>
+                {turns.map((turn) => (
+                  <View key={turn} style={styles.tableRow}>
+                    <View style={styles.tableCol}>
+                      <Text style={styles.tableCell}>{turn}</Text>
+                    </View>
+                    {days.slice(1).map((day) => (
+                      <View key={day} style={styles.tableCol}>
+                        <Text style={styles.tableCell}>
+                          {(() => {
+                            try {
+                              const subject = getSubjectForSlot(schedule, day, turn);
+                              if (!subject) return '';
+                              return `${subject.name}${subject.isVirtual ? ' (V)' : ''}`;
+                            } catch (error) {
+                              console.warn(`Error rendering cell: ${day}-${turn}`, error);
+                              return '';
+                            }
+                          })()}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 ))}
               </View>
-            ))}
-          </View>
-        </View>
-      ))}
-    </Page>
-  </Document>
-);
+            </View>
+          );
+        }) || null}
+      </Page>
+    </Document>
+  );
+};

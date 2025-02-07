@@ -35,6 +35,27 @@ export default function App() {
     maxSubjectsPerDay: 2,
     blockedSlots: [],
   });
+  const [pdfError, setPdfError] = useState<boolean>(false);
+
+  const getPDFDocument = () => {
+    try {
+      const validSchedules = [
+        ...(maxSubjectsSchedule ? maxSubjectsFavorites.map(i => maxSubjectsSchedule.schedules[i]) : []),
+        ...favorites.map(i => schedules[i])
+      ].filter(Boolean);
+
+      if (validSchedules.length === 0) {
+        setPdfError(true);
+        return null;
+      }
+
+      return <PDFSchedule schedules={validSchedules} />;
+    } catch (error) {
+      console.error('Error creating PDF document:', error);
+      setPdfError(true);
+      return null;
+    }
+  };
 
   const handleImport = (subjects: Subject[]) => {
     setSubjects(subjects);
@@ -444,21 +465,41 @@ export default function App() {
                       ({maxSubjectsFavorites.length} máximas, {favorites.length} normales)
                     </div>
                   )}
-                  <PDFDownloadLink
-                    document={
-                      <PDFSchedule 
-                        schedules={[
-                          ...maxSubjectsFavorites.map(i => maxSubjectsSchedule!.schedules[i]),
-                          ...favorites.map(i => schedules[i])
-                        ]} 
-                      />
-                    }
-                    fileName="horarios.pdf"
-                    className="btn-secondary inline-flex items-center gap-2 sm:gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Descargar</span>
-                  </PDFDownloadLink>
+                  {pdfError ? (
+                    <button
+                      onClick={() => setPdfError(false)}
+                      className="btn-secondary inline-flex items-center gap-2 sm:gap-2 text-red-500"
+                      title="Error al generar PDF. Intente de nuevo."
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline">Error</span>
+                    </button>
+                  ) : (
+                    <PDFDownloadLink
+                      document={getPDFDocument()}
+                      fileName="horarios.pdf"
+                      className="btn-secondary inline-flex items-center gap-2 sm:gap-2"
+                    >
+                      {({ loading, error }) => 
+                        loading ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Download className="w-4 h-4 animate-pulse" />
+                            <span className="hidden sm:inline">Generando...</span>
+                          </span>
+                        ) : error ? (
+                          <span className="inline-flex items-center gap-2 text-red-500">
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">Error</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2">
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">Descargar</span>
+                          </span>
+                        )
+                      }
+                    </PDFDownloadLink>
+                  )}
                 </div>
                 <div className="space-y-6">
                   {maxSubjectsFavorites.length > 0 && (
