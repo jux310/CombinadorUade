@@ -1,14 +1,13 @@
 import React, { useRef } from 'react';
-import { Upload } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import { parseCSV } from '../utils/csvParser';
 import { Subject } from '../types';
 
 interface Props {
   onImport: (subjects: Subject[]) => void;
-  onDataParsed: (data: { subjects: Subject[]; rawCourses: any[] }) => void;
 }
 
-export default function CSVImport({ onImport, onDataParsed }: Props) {
+export default function CSVImport({ onImport }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,10 +22,6 @@ export default function CSVImport({ onImport, onDataParsed }: Props) {
         ...subject,
         hidden: true
       }));
-      onDataParsed({
-        subjects: subjectsWithHidden,
-        rawCourses: parsedData.rawCourses
-      });
       onImport(subjectsWithHidden);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -46,9 +41,10 @@ export default function CSVImport({ onImport, onDataParsed }: Props) {
       />
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="text-gray-500 hover:text-gray-700 transition-colors"
+        className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-200 transition-colors"
       >
-        <Upload className="w-4 h-4" />
+        <FileUp className="w-5 h-5" />
+        <span>Importar CSV</span>
       </button>
     </div>
   );

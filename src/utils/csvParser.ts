@@ -1,4 +1,4 @@
-import { Day, Turn } from '../types';
+import { Day, Turn, CourseInfo } from '../types';
 
 interface CourseData {
   code: string;
@@ -23,6 +23,18 @@ interface CourseData {
 
 function parseBoolean(value: string): boolean {
   return value.toLowerCase() === 'true';
+}
+
+function getCampusAbbreviation(campus: string, modality: string): string {
+  if (modality.toUpperCase() === 'VIRTUAL') return 'V';
+  
+  const campusMap = {
+    'MONSERRAT': 'M',
+    'BELGRANO': 'B',
+    'UADE VIRTUAL': 'V',
+    'RECOLETA': 'R'
+  };
+  return campusMap[campus.toUpperCase()] || '';
 }
 
 function parseTurn(schedule: string): Turn {
@@ -70,7 +82,7 @@ export function parseCSV(content: string) {
   // Group courses by name and create subject availability
   const subjectMap = new Map<string, {
     name: string;
-    availability: { [key in Day]?: Turn[] }
+    availability: { [key in Day]?: CourseInfo[] }
   }>();
 
   const dayMap: { [key: string]: Day } = {
@@ -92,42 +104,39 @@ export function parseCSV(content: string) {
     };
 
     const turn = parseTurn(course.schedule);
+    const campus = getCampusAbbreviation(course.campus, course.modality);
 
     Object.entries({
-      monday: course.modality.toUpperCase() === 'VIRTUAL' ? false : course.monday,
-      tuesday: course.modality.toUpperCase() === 'VIRTUAL' ? false : course.tuesday,
-      wednesday: course.modality.toUpperCase() === 'VIRTUAL' ? false : course.wednesday,
-      thursday: course.modality.toUpperCase() === 'VIRTUAL' ? false : course.thursday,
-      friday: course.modality.toUpperCase() === 'VIRTUAL' ? false : course.friday
+      monday: course.monday,
+      tuesday: course.tuesday,
+      wednesday: course.wednesday,
+      thursday: course.thursday,
+      friday: course.friday
     }).forEach(([day, available]) => {
-      // For virtual courses, add the time slot based on schedule
-      if (course.modality.toUpperCase() === 'VIRTUAL' && course[`${day}`]) {
+      if (available) {
         const dayKey = dayMap[day];
         if (!subject.availability[dayKey]) {
           subject.availability[dayKey] = [];
         }
-        const virtualTurn = {
+        
+        const courseInfo = {
           turn,
-          isVirtual: true
+          campus
         };
-        if (!subject.availability[dayKey]!.some(t => 
-          t.turn === virtualTurn.turn && t.isVirtual === virtualTurn.isVirtual
-        )) {
-          subject.availability[dayKey]!.push(virtualTurn);
-        }
-      } else if (available) {
-        const dayKey = dayMap[day];
-        if (!subject.availability[dayKey]) {
-          subject.availability[dayKey] = [];
-        }
-        const normalTurn = {
-          turn,
-          isVirtual: false
-        };
-        if (!subject.availability[dayKey]!.some(t => 
-          t.turn === normalTurn.turn && t.isVirtual === normalTurn.isVirtual
-        )) {
-          subject.availability[dayKey]!.push(normalTurn);
+
+        const existingCourse = subject.availability[dayKey]!.find(c => 
+          c.turn === courseInfo.turn && c.campus === 'V'
+        );
+
+        // If we have a virtual course for this time slot, don't add non-virtual ones
+        if (courseInfo.campus === 'V' || !existingCourse) {
+          // Remove any existing non-virtual courses for this time slot
+          if (courseInfo.campus === 'V') {
+            subject.availability[dayKey] = subject.availability[dayKey]!.filter(c => 
+              !(c.turn === courseInfo.turn && c.campus !== 'V')
+            );
+          }
+          subject.availability[dayKey]!.push(courseInfo);
         }
       }
     });

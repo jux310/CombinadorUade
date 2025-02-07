@@ -12,10 +12,11 @@ const turns = {
 
 interface Props {
   schedule: Schedule;
+  subjects?: Subject[];
 }
 
-export default function ScheduleGrid({ schedule = {} }: Props) {
-  const getSubjectForSlot = (day: string, turn: string): { name: string; isVirtual: boolean } | null => {
+export default function ScheduleGrid({ schedule = {}, subjects = [] }: Props) {
+  const getSubjectForSlot = (day: string, turn: string): { name: string; campus: string; } | null => {
     if (!schedule) return null;
     
     const entry = Object.entries(schedule).find(
@@ -23,10 +24,11 @@ export default function ScheduleGrid({ schedule = {} }: Props) {
     );
     
     if (!entry) return null;
+    const [name, { campus }] = entry;
     
     return {
-      name: entry[0],
-      isVirtual: entry[1].isVirtual || false
+      name,
+      campus
     };
   };
 
@@ -50,7 +52,7 @@ export default function ScheduleGrid({ schedule = {} }: Props) {
                   {(() => {
                     const subject = getSubjectForSlot(days.full[i], turn);
                     if (!subject) return '';
-                    return `${subject.name}${subject.isVirtual ? ' (V)' : ''}`;
+                    return `${subject.name} (${subject.campus})`;
                   })()}
                 </td>
               ))}
@@ -77,7 +79,7 @@ export default function ScheduleGrid({ schedule = {} }: Props) {
                   {(() => {
                     const subject = getSubjectForSlot(day, turn);
                     if (!subject) return '';
-                    return `${subject.name}${subject.isVirtual ? ' (V)' : ''}`;
+                    return `${subject.name} (${subject.campus})`;
                   })()}
                 </td>
               ))}

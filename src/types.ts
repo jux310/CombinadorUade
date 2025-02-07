@@ -1,15 +1,19 @@
 export type Turn = 'Mañana' | 'Tarde' | 'Noche';
 export type Day = 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes';
 
-export interface TurnWithVirtual {
+export interface CourseInfo {
   turn: Turn;
-  isVirtual: boolean;
+  campus: string;
+}
+
+export interface TurnInfo {
+  turn: Turn;
 }
 
 export interface Subject {
   name: string;
   availability: {
-    [key in Day]?: TurnWithVirtual[];
+    [key in Day]?: CourseInfo[];
   };
   hidden?: boolean;
   priority?: boolean;
@@ -19,13 +23,15 @@ export interface Schedule {
   [key: string]: {
     day: Day;
     turn: Turn;
-    isVirtual?: boolean;
+    campus: string;
   };
 }
 
 export interface Preferences {
   allowSandwich: boolean;
   maxSubjectsPerDay: number;
+  singleCampusPerDay: boolean;
+  preferVirtual: boolean;
   blockedSlots: {
     day: Day;
     turn: Turn;

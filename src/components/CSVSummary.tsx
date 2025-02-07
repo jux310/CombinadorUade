@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { Subject, Day, Turn } from '../types';
+import { Subject } from '../types';
 
 interface Props {
   subjects: Subject[];
@@ -8,35 +8,23 @@ interface Props {
 }
 
 export default function CSVSummary({ subjects, rawCourses }: Props) {
-  const isLargeDataset = rawCourses.length > 50;
-
-  if (isLargeDataset) {
-    return (
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Info className="w-5 h-5 text-blue-600" />
-          <h3 className="font-medium text-blue-900">Resumen de Materias Importadas</h3>
-        </div>
-        
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
-          <p>Debido al tamaño del archivo ({rawCourses.length} filas), algunas funcionalidades están deshabilitadas:</p>
-          <ul className="list-disc ml-6 mt-2 space-y-1">
-            <li>Cálculo de materias incompatibles</li>
-            <li>Cálculo de máximo de materias en simultáneo</li>
-          </ul>
-        </div>
-      </div>
-    );
-  }
-
   // Get virtual courses
   const virtualCourses = rawCourses.filter(course => 
     course.modality.toUpperCase() === 'VIRTUAL'
   );
   
+  // Helper function to get turn from schedule
+  const getTurn = (schedule: string) => {
+    const hour = parseInt(schedule.split(' ')[0]);
+    if (hour < 12) return 'Mañana';
+    if (hour < 18) return 'Tarde';
+    return 'Noche';
+  };
+  
   // Find incompatible subjects
   const incompatiblePairs = new Set<string>();
   
+  // Helper function to check if two subjects can be taken together
   const areSubjectsIncompatible = (subject1: Subject, subject2: Subject) => {
     // Get all possible combinations for subject1
     const combinations1: { day: Day; turn: Turn }[] = [];
@@ -116,7 +104,7 @@ export default function CSVSummary({ subjects, rawCourses }: Props) {
         )}
 
         {/* Incompatible Subjects */}
-        {!isLargeDataset && incompatiblePairs.size > 0 && (
+        {incompatiblePairs.size > 0 && (
           <div>
             <h4 className="font-medium text-blue-800 mb-2">Materias Incompatibles:</h4>
             <div className="space-y-1">

@@ -55,20 +55,21 @@ interface ScheduleSlot {
 
 interface Props {
   schedules: Schedule[];
+  subjects?: Subject[];
 }
 
-const getSubjectForSlot = (schedule: Schedule, day: string, turn: string): { name: string; isVirtual: boolean } | null => {
+const getSubjectForSlot = (schedule: Schedule, day: string, turn: string): { name: string; campus: string } | null => {
   if (!schedule) return null;
   
   const entry = Object.entries(schedule).find(
-    ([_, slot]) => slot && slot.day === day && slot.turn === turn
+    ([_, slot]) => slot.day === day && slot.turn === turn
   );
   
-  if (!entry) return null;
+  const [name, { campus }] = entry;
   
   return {
-    name: entry[0],
-    isVirtual: entry[1].isVirtual || false
+    name,
+    campus
   };
 };
 
@@ -111,7 +112,7 @@ export const PDFSchedule = ({ schedules }: Props) => {
                             try {
                               const subject = getSubjectForSlot(schedule, day, turn);
                               if (!subject) return '';
-                              return `${subject.name}${subject.isVirtual ? ' (V)' : ''}`;
+                              return `${subject.name} (${subject.campus})`;
                             } catch (error) {
                               console.warn(`Error rendering cell: ${day}-${turn}`, error);
                               return '';

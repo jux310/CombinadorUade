@@ -4,7 +4,6 @@ import { Preferences, Schedule, Subject } from './types';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CSVImport from './components/CSVImport';
 import { PDFSchedule } from './components/PDFSchedule';
-import CSVSummary from './components/CSVSummary';
 import SubjectInput from './components/SubjectInput';
 import ScheduleGrid from './components/ScheduleGrid';
 import { decodeDataFromURL, encodeDataToURL } from './utils/urlEncoder';
@@ -14,9 +13,7 @@ import { generateSchedules, findMaxSubjectsCombination } from './utils/scheduleG
 export default function App() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [hasMoreSchedules, setHasMoreSchedules] = useState(false);
   const [currentSchedule, setCurrentSchedule] = useState(0);
-  const [isLargeDataset, setIsLargeDataset] = useState(false);
   const [currentMaxSchedule, setCurrentMaxSchedule] = useState(0);
   const [maxSubjectsFavorites, setMaxSubjectsFavorites] = useState<number[]>([]);
   const [maxSubjectsSchedule, setMaxSubjectsSchedule] = useState<{
@@ -27,14 +24,12 @@ export default function App() {
   const [editingSubject, setEditingSubject] = useState<{ subject: Subject; index: number } | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showPreferences, setShowPreferences] = useState(false);
-  const [importedData, setImportedData] = useState<{
-    subjects: Subject[];
-    rawCourses: any[];
-  } | null>(null);
 
   const [preferences, setPreferences] = useState<Preferences>({
     allowSandwich: false,
     maxSubjectsPerDay: 2,
+    singleCampusPerDay: true,
+    preferVirtual: true,
     blockedSlots: [],
   });
   const [pdfError, setPdfError] = useState<boolean>(false);
@@ -51,7 +46,7 @@ export default function App() {
         return null;
       }
 
-      return <PDFSchedule schedules={validSchedules} />;
+      return <PDFSchedule schedules={validSchedules} subjects={subjects} />;
     } catch (error) {
       console.error('Error creating PDF document:', error);
       setPdfError(true);
@@ -60,16 +55,8 @@ export default function App() {
   };
 
   const handleImport = (subjects: Subject[]) => {
-    const isLarge = subjects.length > 50;
     setSubjects(subjects);
     setShowPreferences(false);
-    setIsLargeDataset(isLarge);
-    
-    // Reset calculations for large datasets
-    if (isLarge) {
-      setMaxSubjectsSchedule(null);
-      setMaxSubjectsFavorites([]);
-    }
   };
 
   useEffect(() => {
@@ -101,43 +88,21 @@ export default function App() {
   };
 
   const generateSchedulesIfNeeded = useCallback(() => {
-    const generated = generateSchedules(subjects, preferences, 50);
-    const moreSchedules = generateSchedules(subjects, preferences, 51);
-    setHasMoreSchedules(moreSchedules.length > generated.length);
+    const generated = generateSchedules(subjects, preferences);
     setSchedules(generated);
     setFavorites([]);
     setCurrentSchedule(0);
   }, [subjects, preferences]);
 
-  const loadMoreSchedules = useCallback(() => {
-    const allSchedules = generateSchedules(subjects, preferences);
-    setSchedules(allSchedules);
-    setHasMoreSchedules(false);
-  }, [subjects, preferences]);
-
   useEffect(() => {
-    if (subjects.length === 0) {
-      setSchedules([]);
-      setMaxSubjectsSchedule(null);
-      return;
-    }
-
-    if (isLargeDataset) {
-      // For large datasets, only generate basic schedules
-      const generated = generateSchedules(subjects, preferences, 50);
-      setSchedules(generated);
-      setHasMoreSchedules(false);
-      setMaxSubjectsSchedule(null);
-    } else {
-      // For small datasets, generate all calculations
-      generateSchedulesIfNeeded();
+    generateSchedulesIfNeeded();
+    if (subjects.length > 0) {
       const maxResult = findMaxSubjectsCombination(subjects, preferences);
       setMaxSubjectsSchedule(maxResult);
+    } else {
+      setMaxSubjectsSchedule(null);
     }
-
-    setFavorites([]);
-    setCurrentSchedule(0);
-  }, [generateSchedulesIfNeeded, subjects, preferences, isLargeDataset]);
+  }, [generateSchedulesIfNeeded, subjects, preferences]);
 
   const toggleFavorite = (index: number) => {
     setFavorites(prev => 
@@ -236,21 +201,53 @@ export default function App() {
                   </label>
                 </div>
               )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="singleCampusPerDay"
+                  checked={preferences.singleCampusPerDay}
+                  onChange={(e) => setPreferences(prev => ({
+                    ...prev,
+                    singleCampusPerDay: e.target.checked
+                  }))}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <label htmlFor="singleCampusPerDay" className="text-gray-700">
+                  Una única sede por día (R, M, V o B)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="preferVirtual"
+                  checked={preferences.preferVirtual}
+                  onChange={(e) => setPreferences(prev => ({
+                    ...prev,
+                    preferVirtual: e.target.checked
+                  }))}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <label htmlFor="preferVirtual" className="text-gray-700">
+                  Preferir cursos virtuales cuando estén disponibles
+                </label>
+              </div>
               
               <div className="border-t pt-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-gray-600">Importar/Exportar</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4">
                     <CSVImport 
-                      onImport={handleImport}
-                      onDataParsed={setImportedData}
+                      onImport={handleImport} 
                     />
                     {subjects.length > 0 && (
                       <button
                         onClick={handleShare}
-                        className="text-gray-500 hover:text-gray-700 transition-colors"
+                        className="btn-secondary inline-flex items-center gap-2 px-4 py-2"
                       >
-                        <Share2 className="w-4 h-4" />
+                        <Share2 className="w-5 h-5" />
+                        <span>Compartir</span>
                       </button>
                     )}
                   </div>
@@ -314,13 +311,6 @@ export default function App() {
               </div>
             </div>
           </section>
-
-          {/* CSV Summary Section */}
-          {importedData && (
-            <section className="card p-6">
-              <CSVSummary subjects={importedData.subjects} rawCourses={importedData.rawCourses} />
-            </section>
-          )}
 
           <section className="card p-6">
             <div className="flex items-center gap-2 mb-2">
@@ -396,7 +386,7 @@ export default function App() {
 
           {schedules.length > 0 && (
             <div className="space-y-4 sm:space-y-8">
-            {maxSubjectsSchedule && !isLargeDataset && (
+            {maxSubjectsSchedule && (
               <section className="card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -447,7 +437,7 @@ export default function App() {
                     Única opción
                   </div>
                 )}
-                <ScheduleGrid schedule={maxSubjectsSchedule.schedules[currentMaxSchedule]} />
+                <ScheduleGrid schedule={maxSubjectsSchedule.schedules[currentMaxSchedule]} subjects={subjects} />
               </section>
             )}
             {subjects.some(subject => !subject.hidden) && (
@@ -483,16 +473,8 @@ export default function App() {
                     >
                       Siguiente
                     </button>
-                    {hasMoreSchedules && currentSchedule >= schedules.length - 5 && (
-                      <button
-                        onClick={loadMoreSchedules}
-                        className="btn-primary flex-1"
-                      >
-                        Cargar Más Combinaciones
-                      </button>
-                    )}
                 </div>
-                <ScheduleGrid schedule={schedules[currentSchedule]} />
+                <ScheduleGrid schedule={schedules[currentSchedule]} subjects={subjects} />
               </section>
             )}
             {(favorites.length > 0 || maxSubjectsFavorites.length > 0) && (
@@ -558,7 +540,7 @@ export default function App() {
                               <Heart className="w-5 h-5 fill-current" />
                             </button>
                           </div>
-                          <ScheduleGrid schedule={maxSubjectsSchedule!.schedules[index]} />
+                          <ScheduleGrid schedule={maxSubjectsSchedule!.schedules[index]} subjects={subjects} />
                         </div>
                       ))}
                     </div>
@@ -574,7 +556,7 @@ export default function App() {
                           <Heart className="w-5 h-5 fill-current" />
                         </button>
                       </div>
-                      <ScheduleGrid schedule={schedules[index]} />
+                      <ScheduleGrid schedule={schedules[index]} subjects={subjects} />
                     </div>
                   ))}
                 </div>
