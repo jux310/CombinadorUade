@@ -14,7 +14,9 @@ import { generateSchedules, findMaxSubjectsCombination } from './utils/scheduleG
 export default function App() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [hasMoreSchedules, setHasMoreSchedules] = useState(false);
   const [currentSchedule, setCurrentSchedule] = useState(0);
+  const [isLargeDataset, setIsLargeDataset] = useState(false);
   const [currentMaxSchedule, setCurrentMaxSchedule] = useState(0);
   const [maxSubjectsFavorites, setMaxSubjectsFavorites] = useState<number[]>([]);
   const [maxSubjectsSchedule, setMaxSubjectsSchedule] = useState<{
@@ -58,8 +60,16 @@ export default function App() {
   };
 
   const handleImport = (subjects: Subject[]) => {
+    const isLarge = subjects.length > 50;
     setSubjects(subjects);
     setShowPreferences(false);
+    setIsLargeDataset(isLarge);
+    
+    // Reset calculations for large datasets
+    if (isLarge) {
+      setMaxSubjectsSchedule(null);
+      setMaxSubjectsFavorites([]);
+    }
   };
 
   useEffect(() => {
@@ -91,21 +101,43 @@ export default function App() {
   };
 
   const generateSchedulesIfNeeded = useCallback(() => {
-    const generated = generateSchedules(subjects, preferences);
+    const generated = generateSchedules(subjects, preferences, 50);
+    const moreSchedules = generateSchedules(subjects, preferences, 51);
+    setHasMoreSchedules(moreSchedules.length > generated.length);
     setSchedules(generated);
     setFavorites([]);
     setCurrentSchedule(0);
   }, [subjects, preferences]);
 
+  const loadMoreSchedules = useCallback(() => {
+    const allSchedules = generateSchedules(subjects, preferences);
+    setSchedules(allSchedules);
+    setHasMoreSchedules(false);
+  }, [subjects, preferences]);
+
   useEffect(() => {
-    generateSchedulesIfNeeded();
-    if (subjects.length > 0) {
+    if (subjects.length === 0) {
+      setSchedules([]);
+      setMaxSubjectsSchedule(null);
+      return;
+    }
+
+    if (isLargeDataset) {
+      // For large datasets, only generate basic schedules
+      const generated = generateSchedules(subjects, preferences, 50);
+      setSchedules(generated);
+      setHasMoreSchedules(false);
+      setMaxSubjectsSchedule(null);
+    } else {
+      // For small datasets, generate all calculations
+      generateSchedulesIfNeeded();
       const maxResult = findMaxSubjectsCombination(subjects, preferences);
       setMaxSubjectsSchedule(maxResult);
-    } else {
-      setMaxSubjectsSchedule(null);
     }
-  }, [generateSchedulesIfNeeded, subjects, preferences]);
+
+    setFavorites([]);
+    setCurrentSchedule(0);
+  }, [generateSchedulesIfNeeded, subjects, preferences, isLargeDataset]);
 
   const toggleFavorite = (index: number) => {
     setFavorites(prev => 
@@ -364,7 +396,7 @@ export default function App() {
 
           {schedules.length > 0 && (
             <div className="space-y-4 sm:space-y-8">
-            {maxSubjectsSchedule && (
+            {maxSubjectsSchedule && !isLargeDataset && (
               <section className="card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -451,6 +483,14 @@ export default function App() {
                     >
                       Siguiente
                     </button>
+                    {hasMoreSchedules && currentSchedule >= schedules.length - 5 && (
+                      <button
+                        onClick={loadMoreSchedules}
+                        className="btn-primary flex-1"
+                      >
+                        Cargar Más Combinaciones
+                      </button>
+                    )}
                 </div>
                 <ScheduleGrid schedule={schedules[currentSchedule]} />
               </section>

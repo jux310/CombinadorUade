@@ -1,5 +1,9 @@
 import { Day, Preferences, Schedule, Subject, Turn } from '../types';
 
+const MAX_COMBINATIONS = 500; // Reduced limit for better performance
+const BATCH_SIZE = 50; // Number of combinations to generate at once
+const MAX_SUBJECTS = 7; // Maximum number of subjects to process
+
 const days: Day[] = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const turns: Turn[] = ['Mañana', 'Tarde', 'Noche'];
 
@@ -8,15 +12,32 @@ export function findMaxSubjectsCombination(subjects: Subject[], preferences: Pre
   schedules: Schedule[];
   selectedSubjects: string[];
 } {
-  const MAX_SUBJECTS = 7;
+  // Only use visible subjects
+  const visibleSubjects = subjects.filter(subject => !subject.hidden);
+  
+  // Early exit if no visible subjects
+  if (visibleSubjects.length === 0) {
+    return {
+      maxSubjects: 0,
+      schedules: [],
+      selectedSubjects: []
+    };
+  }
+
+  // Limit the number of subjects to process
+  if (visibleSubjects.length > MAX_SUBJECTS) {
+    console.warn(`Demasiadas materias visibles. Limitando a ${MAX_SUBJECTS} materias.`);
+    visibleSubjects.length = MAX_SUBJECTS;
+  }
+
   let maxSubjects = 0;
   let bestSchedules: Schedule[] = [];
   let bestSubjects: string[] = [];
 
-  // Try combinations with increasing number of subjects
-  for (let targetSize = MAX_SUBJECTS; targetSize > 0; targetSize--) {
+  // Try combinations with decreasing number of subjects
+  for (let targetSize = Math.min(MAX_SUBJECTS, visibleSubjects.length); targetSize > 0; targetSize--) {
     const combinations = generateCombinationsForSize(
-      subjects,
+      visibleSubjects,
       preferences,
       targetSize
     );
@@ -144,7 +165,20 @@ function generateCombinationsForSize(
   return validSchedules;
 }
 
-function generateCombinations(subjects: Subject[], preferences: Preferences): Schedule[] {
+function generateCombinations(
+  subjects: Subject[],
+  preferences: Preferences,
+  limit: number = BATCH_SIZE
+): Schedule[] {
+  // Early exit if no subjects
+  if (subjects.length === 0) return [];
+
+  // Limit the number of subjects to process
+  if (subjects.length > MAX_SUBJECTS) {
+    console.warn(`Demasiadas materias para generar todas las combinaciones. Limitando a ${MAX_SUBJECTS} materias.`);
+    subjects = subjects.slice(0, MAX_SUBJECTS);
+  }
+
   const validSchedules: Schedule[] = [];
   const prioritySubjects = subjects.filter(s => s.priority);
   
@@ -178,7 +212,7 @@ function generateCombinations(subjects: Subject[], preferences: Preferences): Sc
       }
     }
     
-    // Check for "sandwich" schedule (morning and night classes without afternoon)
+    // Check for "sandwich" schedule
     const daySchedules = new Map<Day, Set<Turn>>();
     for (const { day, turn } of Object.values(schedule)) {
       if (!daySchedules.has(day)) {
@@ -204,7 +238,12 @@ function generateCombinations(subjects: Subject[], preferences: Preferences): Sc
     return true;
   }
 
-  function backtrack(currentSchedule: Schedule, index: number) {
+  function backtrack(currentSchedule: Schedule, index: number): boolean {
+    // Stop if we've found enough combinations
+    if (validSchedules.length >= limit || validSchedules.length >= MAX_COMBINATIONS) {
+      return true;
+    }
+
     // If we haven't included all priority subjects and can't fit them in remaining slots, backtrack
     const includedPriorities = Object.keys(currentSchedule).filter(name => 
       prioritySubjects.some(s => s.name === name)
@@ -213,14 +252,15 @@ function generateCombinations(subjects: Subject[], preferences: Preferences): Sc
     const remainingPriorities = prioritySubjects.length - includedPriorities;
     
     if (remainingPriorities > remainingSlots) {
-      return;
+      return false;
     }
     
     if (index === subjects.length) {
       if (isValidSchedule(currentSchedule)) {
         validSchedules.push({ ...currentSchedule });
+        return validSchedules.length >= limit;
       }
-      return;
+      return false;
     }
 
     const subject = subjects[index];
@@ -232,18 +272,27 @@ function generateCombinations(subjects: Subject[], preferences: Preferences): Sc
           turn,
           isVirtual
         };
-        backtrack(currentSchedule, index + 1);
+        if (backtrack(currentSchedule, index + 1)) return true;
         delete currentSchedule[subject.name];
       }
     }
+    return false;
   }
 
   backtrack({}, 0);
   return validSchedules;
 }
 
-export function generateSchedules(subjects: Subject[], preferences: Preferences): Schedule[] {
-  if (subjects.length === 0) return [];
+export function generateSchedules(
+  subjects: Subject[],
+  preferences: Preferences,
+  limit: number = BATCH_SIZE
+): Schedule[] {
+  // Only use visible subjects
   const visibleSubjects = subjects.filter(subject => !subject.hidden);
-  return generateCombinations(visibleSubjects, preferences);
+  
+  // Early exit if no visible subjects
+  if (visibleSubjects.length === 0) return [];
+  
+  return generateCombinations(visibleSubjects, preferences, limit);
 }
