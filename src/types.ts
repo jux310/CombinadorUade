@@ -8,6 +8,7 @@ export interface CourseInfo {
 
 export interface TurnInfo {
   turn: Turn;
+  campus?: string;
 }
 
 export interface Subject {
@@ -15,8 +16,15 @@ export interface Subject {
   availability: {
     [key in Day]?: CourseInfo[];
   };
+  campus?: string;
   hidden?: boolean;
   priority?: boolean;
+}
+
+export interface PinamarCourse {
+  name: string;
+  dates: string;
+  favorite?: boolean;
 }
 
 export interface Schedule {

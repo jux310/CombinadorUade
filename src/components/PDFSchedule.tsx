@@ -1,6 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Link } from '@react-pdf/renderer';
-import { Schedule } from '../types';
+import { Schedule, PinamarCourse } from '../types';
 
 const styles = StyleSheet.create({
   page: {
@@ -56,6 +56,7 @@ interface ScheduleSlot {
 interface Props {
   schedules: Schedule[];
   subjects?: Subject[];
+  pinamarCourses?: PinamarCourse[];
 }
 
 const getSubjectForSlot = (schedule: Schedule, day: string, turn: string): { name: string; campus: string } | null => {
@@ -73,7 +74,7 @@ const getSubjectForSlot = (schedule: Schedule, day: string, turn: string): { nam
   };
 };
 
-export const PDFSchedule = ({ schedules }: Props) => {
+export const PDFSchedule = ({ schedules, pinamarCourses = [] }: Props) => {
   if (!Array.isArray(schedules) || schedules.length === 0) {
     throw new Error('Invalid schedules data');
   }
@@ -127,6 +128,19 @@ export const PDFSchedule = ({ schedules }: Props) => {
             </View>
           );
         }) || null}
+        {pinamarCourses.length > 0 && (
+          <View wrap={false}>
+            <Text style={{ fontSize: 14, marginTop: 20, marginBottom: 10 }}>Materias en Sede Pinamar</Text>
+            {pinamarCourses.map((course, index) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{course.name}</Text>
+                <Text style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
+                  Fechas: {course.dates}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </Page>
     </Document>
   );

@@ -1,13 +1,14 @@
 import React, { useRef } from 'react';
 import { FileUp } from 'lucide-react';
 import { parseCSV } from '../utils/csvParser';
-import { Subject } from '../types';
+import { Subject, PinamarCourse } from '../types';
 
 interface Props {
   onImport: (subjects: Subject[]) => void;
+  onPinamarCoursesFound?: (courses: PinamarCourse[]) => void;
 }
 
-export default function CSVImport({ onImport }: Props) {
+export default function CSVImport({ onImport, onPinamarCoursesFound }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,12 +18,15 @@ export default function CSVImport({ onImport }: Props) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      const parsedData = parseCSV(content);
-      const subjectsWithHidden = parsedData.subjects.map(subject => ({
+      const { subjects, pinamarCourses } = parseCSV(content);
+      const subjectsWithHidden = subjects.map(subject => ({
         ...subject,
         hidden: true
       }));
       onImport(subjectsWithHidden);
+      if (onPinamarCoursesFound && pinamarCourses.length > 0) {
+        onPinamarCoursesFound(pinamarCourses);
+      }
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }

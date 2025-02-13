@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Calendar, X, Heart, Settings, ChevronDown, ChevronUp, BookOpen, ListPlus, Layout, Download, Share2, Eye, EyeOff, Maximize } from 'lucide-react';
-import { Preferences, Schedule, Subject } from './types';
+import { Preferences, Schedule, Subject, PinamarCourse } from './types';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CSVImport from './components/CSVImport';
+import PinamarCourses from './components/PinamarCourses';
 import { PDFSchedule } from './components/PDFSchedule';
 import SubjectInput from './components/SubjectInput';
 import ScheduleGrid from './components/ScheduleGrid';
@@ -24,6 +25,7 @@ export default function App() {
   const [editingSubject, setEditingSubject] = useState<{ subject: Subject; index: number } | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [pinamarCourses, setPinamarCourses] = useState<PinamarCourse[]>([]); 
 
   const [preferences, setPreferences] = useState<Preferences>({
     allowSandwich: false,
@@ -40,13 +42,18 @@ export default function App() {
         ...(maxSubjectsSchedule ? maxSubjectsFavorites.map(i => maxSubjectsSchedule.schedules[i]) : []),
         ...favorites.map(i => schedules[i])
       ].filter(Boolean);
+      const favoritePinamarCourses = pinamarCourses.filter(course => course.favorite);
 
-      if (validSchedules.length === 0) {
+      if (validSchedules.length === 0 && favoritePinamarCourses.length === 0) {
         setPdfError(true);
         return null;
       }
 
-      return <PDFSchedule schedules={validSchedules} subjects={subjects} />;
+      return <PDFSchedule 
+        schedules={validSchedules} 
+        subjects={subjects} 
+        pinamarCourses={favoritePinamarCourses}
+      />;
     } catch (error) {
       console.error('Error creating PDF document:', error);
       setPdfError(true);
@@ -57,6 +64,10 @@ export default function App() {
   const handleImport = (subjects: Subject[]) => {
     setSubjects(subjects);
     setShowPreferences(false);
+  };
+
+  const handlePinamarCoursesFound = (courses: PinamarCourse[]) => {
+    setPinamarCourses(courses);
   };
 
   useEffect(() => {
@@ -134,6 +145,12 @@ export default function App() {
       console.error('Error al copiar:', err);
       alert('Error al copiar la URL');
     });
+  };
+
+  const togglePinamarFavorite = (index: number) => {
+    setPinamarCourses(prev => prev.map((course, i) => 
+      i === index ? { ...course, favorite: !course.favorite } : course
+    ));
   };
 
   return (
@@ -240,6 +257,7 @@ export default function App() {
                   <div className="flex items-center gap-4">
                     <CSVImport 
                       onImport={handleImport} 
+                      onPinamarCoursesFound={handlePinamarCoursesFound}
                     />
                     {subjects.length > 0 && (
                       <button
@@ -311,7 +329,7 @@ export default function App() {
               </div>
             </div>
           </section>
-
+          
           <section className="card p-6">
             <div className="flex items-center gap-2 mb-2">
               <ListPlus className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
@@ -560,6 +578,14 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+            {pinamarCourses.length > 0 && (
+              <section className="card p-6">
+                <PinamarCourses 
+                  courses={pinamarCourses} 
+                  onToggleFavorite={togglePinamarFavorite}
+                />
               </section>
             )}
             </div>

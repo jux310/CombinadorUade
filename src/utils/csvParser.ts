@@ -46,9 +46,10 @@ function parseTurn(schedule: string): Turn {
 
 export function parseCSV(content: string) {
   const lines = content.split('\n');
-  if (lines.length < 2) return [];
+  if (lines.length < 2) return { subjects: [], pinamarCourses: [] };
 
   const courses: CourseData[] = [];
+  const pinamarCourses: PinamarCourse[] = [];
   
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -78,6 +79,33 @@ export function parseCSV(content: string) {
       type: values[17] || ''
     });
   }
+  
+  // Separate Pinamar courses
+  const pinamarData = courses.filter(course => 
+    course.campus.toUpperCase().includes('PINAMAR')
+  ).map(course => ({
+    name: course.name,
+    dates: course.dates
+  }));
+  
+  // Remove Pinamar courses from main courses list
+  const nonPinamarCourses = courses.filter(course =>
+    !course.campus.toUpperCase().includes('PINAMAR')
+  );
+
+  // Group Pinamar courses by name
+  const pinamarCoursesMap = new Map<string, string[]>();
+  pinamarData.forEach(course => {
+    const existingDates = pinamarCoursesMap.get(course.name) || [];
+    if (!existingDates.includes(course.dates)) {
+      pinamarCoursesMap.set(course.name, [...existingDates, course.dates]);
+    }
+  });
+
+  const groupedPinamarCourses = Array.from(pinamarCoursesMap.entries()).map(([name, dates]) => ({
+    name,
+    dates: dates.join(' | ')
+  }));
 
   // Group courses by name and create subject availability
   const subjectMap = new Map<string, {
@@ -93,7 +121,7 @@ export function parseCSV(content: string) {
     friday: 'Viernes'
   };
 
-  for (const course of courses) {
+  for (const course of nonPinamarCourses) {
     if (course.modality.toUpperCase() === 'INTENSIVO') {
       continue;
     }
@@ -146,6 +174,7 @@ export function parseCSV(content: string) {
 
   return {
     subjects: Array.from(subjectMap.values()),
-    rawCourses: courses
+    rawCourses: nonPinamarCourses,
+    pinamarCourses: groupedPinamarCourses
   };
 }

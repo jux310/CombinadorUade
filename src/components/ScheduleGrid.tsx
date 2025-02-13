@@ -52,7 +52,7 @@ export default function ScheduleGrid({ schedule = {}, subjects = [] }: Props) {
                   {(() => {
                     const subject = getSubjectForSlot(days.full[i], turn);
                     if (!subject) return '';
-                    return `${subject.name} (${subject.campus})`;
+                    return `${subject.name}${subject.campus ? ` (${subject.campus})` : ''}`;
                   })()}
                 </td>
               ))}
@@ -79,7 +79,7 @@ export default function ScheduleGrid({ schedule = {}, subjects = [] }: Props) {
                   {(() => {
                     const subject = getSubjectForSlot(day, turn);
                     if (!subject) return '';
-                    return `${subject.name} (${subject.campus})`;
+                    return `${subject.name}${subject.campus ? ` (${subject.campus})` : ''}`;
                   })()}
                 </td>
               ))}
